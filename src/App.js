@@ -1,87 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useRef } from "react";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
+import axios from "axios";
 
-function App() {
-  const [coins, setCoins] = useState([]);
-  const [btcPrice, setBtcPrice] = useState(0);
+export default function App() {
+  const [rowData, setRowData] = useState([]);
 
   useEffect(() => {
     axios
-      .get('https://api.coingecko.com/api/v3/coins/bitcoin')
-      .then(res => {
-        setBtcPrice(res.data.market_data.current_price.usd);
-      })
-      .catch(err => console.log(err));
+      .get(
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=1h,24h,7d"
+      )
+      .then((res) => {
+        // console.log(res);
 
-    axios
-      .get('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false')
-      .then(res => {
-        setCoins(res.data);
+        setRowData(
+          res.data.map((d) => {
+            return {
+              ...d,
+              h24_ratio: ((
+                d.price_change_percentage_24h_in_currency -
+                res.data[0].price_change_percentage_24h_in_currency
+              )).toFixed(3),
+              h1_ratio: ((
+                d.price_change_percentage_1h_in_currency -
+                res.data[0].price_change_percentage_1h_in_currency
+              )).toFixed(3),
+            };
+          })
+        );
       })
-      .catch(err => console.log(err));
+      .catch((err) => console.log(err));
   }, []);
 
-  const getLongConditionClass = (coin) => {
-    const priceChangeRatio = coin.price_change_percentage_24h / coins[0].price_change_percentage_24h;
-    if (priceChangeRatio < 0.95) {
-      return 'text-red-500';
-    } else if (priceChangeRatio < 1.05) {
-      return 'text-yellow-500';
-    } else {
-      return 'text-green-500';
-    }
+  const defaultColDef = {
+    sortable: true,
   };
 
-  const getShortConditionClass = (coin) => {
-    const priceChangeRatio = coin.price_change_percentage_24h / coins[0].price_change_percentage_24h;
-    if (priceChangeRatio < 0.8) {
-      return 'text-red-500';
-    } else if (priceChangeRatio < 1.2) {
-      return 'text-yellow-500';
-    } else {
-      return 'text-green-500';
-    }
-  };
+  const columnDefs = [
+    {
+      headerName: "Rank",
+      field: "market_cap_rank",
+    },
+    {
+      headerName: "Name",
+      field: "name",
+    },
+    {
+      headerName: "Symbol",
+      field: "symbol",
+    },
+    {
+      headerName: "Price",
+      field: "current_price",
+      valueFormatter: ({ value }) => `$${value.toFixed(2)}`,
+    },
+    {
+      headerName: "24h %",
+      field: "price_change_percentage_24h_in_currency",
+      valueFormatter: ({ value }) => `${value.toFixed(2)}%`,
+      cellClassRules: {
+        "cell-value-up": ({ value }) => value > 0,
+        "cell-value-down": ({ value }) => value < 0,
+      },
+    },
+    {
+      headerName: "1h %",
+      field: "price_change_percentage_1h_in_currency",
+      valueFormatter: ({ value }) => `${parseFloat(value).toFixed(2)}%`,
+      cellClassRules: {
+        "cell-value-up": ({ value }) => parseFloat(value) > 0,
+        "cell-value-down": ({ value }) => parseFloat(value) < 0,
+      },
+    },
+    //   headerName: "Market Cap",
+    //   field: "market_cap",
+    //   valueFormatter: ({ value }) => `$${value.toLocaleString()}`,
+    // },
 
+    {
+      headerName: "Condition",
+      valueGetter: ({ data }) => {
+        const priceChangeRatio = data.h24_ratio;
+        if (priceChangeRatio < -3) {
+          return "Underpriced";
+        } else if (priceChangeRatio < 3) {
+          return "Fair value";
+        } else {
+          return "Overpriced";
+        }
+      },
+      cellClassRules: {
+        "text-red-500": ({ data }) => data.h24_ratio < -3,
+        "text-yellow-500": ({ data }) =>
+          data.h24_ratio >= -3 && data.h24_ratio < 3,
+        "text-green-500": ({ data }) => data.h24_ratio >= 3,
+      },
+    },
+
+    {
+      headerName: "24h Ratio",
+      valueGetter: ({ data }) => data.h24_ratio,
+      cellClassRules: {
+        "text-red-500": ({ data }) => data.h24_ratio < -3,
+        "text-yellow-500": ({ data }) =>
+          data.h24_ratio >= -3 && data.h24_ratio < 3,
+        "text-green-500": ({ data }) => data.h24_ratio >= 3,
+      },
+    },
+    {
+      headerName: "1h Ratio",
+      valueGetter: ({ data }) => data.h1_ratio,
+      cellClassRules: {
+        "text-red-500": ({ data }) => data.h1_ratio < -3,
+        "text-yellow-500": ({ data }) =>
+          data.h1_ratio >= -3 && data.h1_ratio < 3,
+        "text-green-500": ({ data }) => data.h1_ratio >= 3,
+      },
+    },
+  ];
+  const gridOptions = {
+    columnDefs: columnDefs,
+    rowData: rowData,
+    defaultColDef: {
+      sortable: true,
+      filter: true,
+      resizable: true,
+      minWidth: 100,
+    },
+    animateRows: true,
+  };
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold mb-6">Top 30 Cryptocurrencies by Market Cap</h1>
-      <table className="w-full text-left table-auto">
-        <thead>
-          <tr className="border-b-2 border-gray-200">
-            <th className="py-3 pr-3">Rank</th>
-            <th className="py-3 pr-3">Name</th>
-            <th className="py-3 pr-3">Symbol</th>
-            <th className="py-3 pr-3">Price</th>
-            <th className="py-3 pr-3">24h %</th>
-            <th className="py-3 pr-3">Market Cap</th>
-            <th className="py-3 pr-3">Condition</th>
-            <th className="py-3 pr-3">Ratio</th>
-          </tr>
-        </thead>
-        <tbody>
-          {coins.map(coin => (
-            <tr key={coin.id} className="border-b border-gray-200">
-              <td className="py-3 pr-3">{coin.market_cap_rank}</td>
-              <td className="py-3 pr-3">{coin.name}</td>
-              <td className="py-3 pr-3">{coin.symbol.toUpperCase()}</td>
-              <td className="py-3 pr-3">${coin.current_price.toFixed(2)}</td>
-              <td className={`py-3 pr-3 ${coin.price_change_percentage_24h > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {coin.price_change_percentage_24h.toFixed(2)}%
-              </td>
-              <td>${coin.market_cap.toLocaleString()}</td>
-              <td className={coin.price_change_percentage_24h / coins[0].price_change_percentage_24h < 0.95 ? 'text-red-500' : coin.current_price / coins[0].price_change_percentage_24h < 1.05 ? 'text-yellow-500' : 'text-green-500'}>
-                {coin.price_change_percentage_24h / coins[0].price_change_percentage_24h < 0.95 ? 'Underpriced' : coin.price_change_percentage_24h / coins[0].price_change_percentage_24h < 1.05 ? 'Fair value' : 'Overpriced'}
-              </td>
-              <td className={coin.price_change_percentage_24h / coins[0].price_change_percentage_24h < 0.8 ? 'text-red-500' : coin.price_change_percentage_24h/ coins[0].price_change_percentage_24h < 1.2 ? 'text-yellow-500' : 'text-green-500'}>
-                {(Math.round(coin.price_change_percentage_24h / coins[0].price_change_percentage_24h * 100) / 100).toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="ag-theme-alpine-dark h-screen">
+      {rowData && (
+        <AgGridReact rowData={rowData} gridOptions={gridOptions}></AgGridReact>
+      )}
     </div>
   );
 }
-
-export default App;
