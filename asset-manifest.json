@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/trade-assistant/static/css/main.e164abd7.css",
-    "main.js": "/trade-assistant/static/js/main.b66c1e35.js",
+    "main.js": "/trade-assistant/static/js/main.820c0f51.js",
     "static/js/787.0f7d03dd.chunk.js": "/trade-assistant/static/js/787.0f7d03dd.chunk.js",
     "index.html": "/trade-assistant/index.html",
     "main.e164abd7.css.map": "/trade-assistant/static/css/main.e164abd7.css.map",
-    "main.b66c1e35.js.map": "/trade-assistant/static/js/main.b66c1e35.js.map",
+    "main.820c0f51.js.map": "/trade-assistant/static/js/main.820c0f51.js.map",
     "787.0f7d03dd.chunk.js.map": "/trade-assistant/static/js/787.0f7d03dd.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e164abd7.css",
-    "static/js/main.b66c1e35.js"
+    "static/js/main.820c0f51.js"
   ]
 }
